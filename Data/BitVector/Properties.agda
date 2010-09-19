@@ -1,3 +1,4 @@
+{-# OPTIONS --universe-polymorphism #-}
 module Data.BitVector.Properties where
 
 open import Relation.Binary.PropositionalEquality
@@ -11,19 +12,24 @@ open import Data.Vec
 
 open import Data.Bool renaming (Bool to Bit; false to 0#; true to 1#)
 
+open import Relation.Binary
+open import Function
+
 
 open import Data.BitVector
 
 
-
-
 private
-  identityˡ : ∀ {n} x → zero n + x ≡ x
+  module P {n : ℕ} where
+    import Algebra.FunctionProperties as FP; open FP (_≡_ ∶ Rel (BitVector n) _) public
+  open P
+
+  identityˡ : ∀ {n} → LeftIdentity (zero n) _+_
   identityˡ [] = refl
   identityˡ (1# ∷ xs) rewrite identityˡ xs = refl
   identityˡ (0# ∷ xs) rewrite identityˡ xs = refl
 
-  identityʳ : ∀ {n} x → x + zero n ≡ x
+  identityʳ : ∀ {n} → RightIdentity (zero n) _+_
   identityʳ [] = refl
   identityʳ (1# ∷ xs) rewrite identityʳ xs = refl
   identityʳ (0# ∷ xs) rewrite identityʳ xs = refl
@@ -77,7 +83,7 @@ private
   add-assoc c₁ 0# (0# ∷ xs) (0# ∷ ys) (1# ∷ zs) rewrite add-assoc c₁ 0# xs ys zs = refl
   add-assoc c₁ 0# (0# ∷ xs) (0# ∷ ys) (0# ∷ zs) rewrite add-assoc 0# 0# xs ys zs = refl
 
-  assoc : ∀ {n} (x y z : BitVector n) → (x + y) + z ≡ x + (y + z)
+  assoc : ∀ {n} → Associative {n} _+_
   assoc [] [] [] = refl
   assoc (1# ∷ xs) (1# ∷ ys) (1# ∷ zs) rewrite add-assoc 0# 1# xs ys zs = refl
   assoc (1# ∷ xs) (1# ∷ ys) (0# ∷ zs) rewrite add-assoc 0# 1# xs ys zs | add-carry 0# 1# xs ys zs = refl
@@ -95,7 +101,7 @@ private
   add-comm c (0# ∷ xs) (1# ∷ ys) rewrite add-comm c xs ys = refl
   add-comm c (0# ∷ xs) (0# ∷ ys) rewrite add-comm 0# xs ys = refl
 
-  comm : ∀ {n} (x y : BitVector n) → x + y ≡ y + x
+  comm : ∀ {n} → Commutative {n} _+_
   comm = add-comm 0#
 
   add-inverse : ∀ {n} xs → add′ 1# (add′ 0# (zero n) (bitwise-negation xs)) xs ≡ zero n
@@ -103,7 +109,7 @@ private
   add-inverse (1# ∷ xs) rewrite add-inverse xs = refl
   add-inverse (0# ∷ xs) rewrite add-inverse xs = refl
 
-  inverseˡ : ∀ {n} (x : BitVector n) → - x + x ≡ zero n
+  inverseˡ : ∀ {n} → LeftInverse (zero n) -_ _+_
   inverseˡ [] = refl
   inverseˡ (1# ∷ xs) rewrite add-inverse xs = refl
   inverseˡ (0# ∷ xs) rewrite add-assoc 0# 1# (zero _) (bitwise-negation xs) xs
@@ -111,28 +117,23 @@ private
                               | sym (add-assoc 1# 0# (zero _) (bitwise-negation xs) xs)
                               | add-inverse xs = refl
 
-  inverseʳ : ∀ {n} (x : BitVector n) → x + - x ≡ zero n
+  inverseʳ : ∀ {n} → RightInverse (zero n) -_ _+_
   inverseʳ x = trans (comm x (- x)) (inverseˡ x)
 
-
-
-
-
-  *-zeroˡ : ∀ {n} (x : BitVector n) → zero n * x ≡ zero n
+  *-zeroˡ : ∀ {n} → LeftZero (zero n) _*_
   *-zeroˡ [] = refl
   *-zeroˡ (x ∷ xs) rewrite *-zeroˡ (droplast (x ∷ xs)) = refl
 
-  *-identityˡ : ∀ {n} (x : BitVector n) → one n * x ≡ x
+  *-identityˡ : ∀ {n} → LeftIdentity (one n) _*_
   *-identityˡ [] = refl
   *-identityˡ (0# ∷ xs) rewrite *-zeroˡ (droplast (0# ∷ xs)) | identityʳ xs = refl
   *-identityˡ (1# ∷ xs) rewrite *-zeroˡ (droplast (1# ∷ xs)) | identityʳ xs = refl
 
-  mutual
-   *-comm : ∀ {n} (x y : BitVector n) → x * y ≡ y * x
-   *-comm {Nzero} [] [] = refl
-   *-comm {Nsuc n} x y = *-comm1 x y
-
-   *-comm1 : ∀ {n} (x y : BitVector (Nsuc n)) → x * y ≡ y * x
+  *-comm : ∀ {n} → Commutative {n} _*_
+  *-comm {Nzero} [] [] = refl
+  *-comm {Nsuc n} x y = *-comm1 x y
+   where
+   *-comm1 : ∀ {n} → Commutative {Nsuc n} _*_
    *-comm1 (0# ∷ []) (0# ∷ []) = refl
    *-comm1 (0# ∷ []) (1# ∷ []) = refl
    *-comm1 (1# ∷ []) (0# ∷ []) = refl
@@ -175,7 +176,7 @@ private
   droplast-distrib-* {Nsuc _} (1# ∷ xs) (1# ∷ ys) rewrite droplast-distrib-+ ys (xs * (1# ∷ droplast ys))
                                                         | droplast-distrib-* xs (1# ∷ droplast ys) = refl
 
-  extract-carry : ∀ {n} (xs ys : BitVector n) → add′ 1# xs ys ≡ one _ + add′ 0# xs ys
+  extract-carry : ∀ {n} (xs ys : BitVector n) → add′ 1# xs ys ≡ one _ + (xs + ys)
   extract-carry [] [] = refl
   extract-carry (0# ∷ xs) (0# ∷ ys) rewrite identityˡ (xs + ys) = refl
   extract-carry (0# ∷ xs) (1# ∷ ys) rewrite add-carry 1# 0# (zero _) xs ys | identityˡ (add′ 1# xs ys) = refl
@@ -188,12 +189,13 @@ private
   shift-to-add c (0# ∷ xs) rewrite shift-to-add 0# xs = refl
   shift-to-add c (1# ∷ xs) rewrite shift-to-add 1# xs = refl
 
-  *-distribʳ : ∀ {n} (x y z : BitVector n) → (y + z) * x ≡ (y * x) + (z * x)
+  *-distribʳ : ∀ {n} → (_*_ {n}) DistributesOverʳ _+_
   *-distribʳ [] [] [] = refl
   *-distribʳ {Nsuc n} xs ys zs = *-distribʳ1 xs ys zs
 
     where
-    lemma : ∀ {n} c (xs ys zs : BitVector n) → add′ 1# ys zs * droplast (c ∷ xs) ≡  add′ c (xs + (ys * droplast (c ∷ xs))) (xs + (zs * droplast (c ∷ xs)))
+    lemma : ∀ {n} c (xs ys zs : BitVector n) → add′ 1# ys zs * droplast (c ∷ xs)
+                                             ≡ add′ c (xs + (ys * droplast (c ∷ xs))) (xs + (zs * droplast (c ∷ xs)))
     lemma c xs ys zs rewrite extract-carry ys zs
                            | *-distribʳ (droplast (c ∷ xs)) (one _) (ys + zs)
                            | *-identityˡ (droplast (c ∷ xs))
@@ -212,7 +214,7 @@ private
       = refl
 
 
-    *-distribʳ1 : ∀ {n} (x y z : BitVector (Nsuc n)) → (y + z) * x ≡ (y * x) + (z * x)
+    *-distribʳ1 : ∀ {n} → (_*_ {Nsuc n}) DistributesOverʳ _+_
     *-distribʳ1 xs (0# ∷ ys) (0# ∷ zs) rewrite *-distribʳ (droplast xs) ys zs = refl
     *-distribʳ1 (0# ∷ xs) (0# ∷ ys) (1# ∷ zs)
              rewrite *-distribʳ (droplast (0# ∷ xs)) ys zs
@@ -235,22 +237,22 @@ private
 
 
 
-  *-assoc : ∀ {n} (x y z : BitVector n) → (x * y) * z ≡ x * (y * z)
+  *-assoc : ∀ {n} → Associative {n} _*_
   *-assoc [] [] [] = refl
   *-assoc {Nsuc n} x y z = *-assoc1 x y z
 
    where
-   *-assoc1 : ∀ {n} (x y z : BitVector (Nsuc n)) → (x * y) * z ≡ x * (y * z)
+   *-assoc1 : ∀ {n} → Associative {Nsuc n} _*_
    *-assoc1 (0# ∷ xs) ys zs rewrite *-assoc xs (droplast ys) (droplast zs)
                                   | droplast-distrib-* ys zs = refl
    *-assoc1 (1# ∷ xs) ys zs rewrite *-distribʳ zs ys (0# ∷ xs * droplast ys)
                                   | *-assoc xs (droplast ys) (droplast zs)
                                   | droplast-distrib-* ys zs = refl
 
-  *-identityʳ : ∀ {n} (x : BitVector n) → x * one n ≡ x
+  *-identityʳ : ∀ {n} → RightIdentity (one n) _*_
   *-identityʳ x rewrite *-comm x (one _) = *-identityˡ x
 
-  *-distribˡ : ∀ {n} (x y z : BitVector n) → x * (y + z) ≡ (x * y) + (x * z)
+  *-distribˡ : ∀ {n} → (_*_ {n}) DistributesOverˡ _+_
   *-distribˡ x y z rewrite *-comm x (y + z) | *-distribʳ x y z | *-comm x y | *-comm x z = refl
 
   module Properties n where
@@ -288,5 +290,4 @@ commutativeRing n = record {
                        -_ = -_;
                        0# = zero n;
                        1# = one n;
-                       isCommutativeRing = isCommutativeRing }
-  where open Properties n
+                       isCommutativeRing = Properties.isCommutativeRing n }
