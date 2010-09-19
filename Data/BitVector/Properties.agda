@@ -1,4 +1,4 @@
-module Properties where
+module Data.BitVector.Properties where
 
 open import Relation.Binary.PropositionalEquality
 open import Algebra.FunctionProperties.Core
@@ -10,86 +10,14 @@ open import Data.Nat using (ℕ) renaming (zero to Nzero; suc to Nsuc)
 open import Data.Vec
 
 open import Data.Bool renaming (Bool to Bit; false to 0#; true to 1#)
-open import Data.Bool.Properties renaming (isBooleanAlgebra to Bool-isBooleanAlgebra)
 
-open import BitVector
 
-module BitProperties = IsBooleanAlgebra Bool-isBooleanAlgebra
+open import Data.BitVector
 
-module LatticeProperties (n : ℕ) where
-  -- All these properties follow trivially from the bit properties. TODO: generalize the pattern to just reuse the bitproperties
-  ∨-comm : ∀ {n} (x y : BitVector n) → bitwise-or x y ≡ bitwise-or y x
-  ∨-comm [] [] = refl
-  ∨-comm (x ∷ xs) (y ∷ ys) rewrite BitProperties.∨-comm x y | ∨-comm xs ys = refl
 
-  ∧-comm : ∀ {n} (x y : BitVector n) → bitwise-and x y ≡ bitwise-and y x
-  ∧-comm [] [] = refl
-  ∧-comm (x ∷ xs) (y ∷ ys) rewrite BitProperties.∧-comm x y | ∧-comm xs ys = refl
 
-  ∨-assoc : ∀ {n} (x y z : BitVector n) → bitwise-or (bitwise-or x y) z ≡ bitwise-or x (bitwise-or y z)
-  ∨-assoc [] [] [] = refl
-  ∨-assoc (x ∷ xs) (y ∷ ys) (z ∷ zs) rewrite BitProperties.∨-assoc x y z | ∨-assoc xs ys zs = refl
 
-  ∧-assoc : ∀ {n} (x y z : BitVector n) → bitwise-and (bitwise-and x y) z ≡ bitwise-and x (bitwise-and y z)
-  ∧-assoc [] [] [] = refl
-  ∧-assoc (x ∷ xs) (y ∷ ys) (z ∷ zs) rewrite BitProperties.∧-assoc x y z | ∧-assoc xs ys zs = refl
-
-  ∨∧-absorb : ∀ {n} (x y : BitVector n) → bitwise-or x (bitwise-and x y) ≡ x
-  ∨∧-absorb [] [] = refl
-  ∨∧-absorb (x ∷ xs) (y ∷ ys) rewrite proj₁ BitProperties.absorptive x y | ∨∧-absorb xs ys = refl
-
-  ∧∨-absorb : ∀ {n} (x y : BitVector n) → bitwise-and x (bitwise-or x y) ≡ x
-  ∧∨-absorb [] [] = refl
-  ∧∨-absorb (x ∷ xs) (y ∷ ys) rewrite proj₂ BitProperties.absorptive x y | ∧∨-absorb xs ys = refl
-
-  ∨-cong : ∀ {n} {x y u v : BitVector n} → x ≡ y → u ≡ v → bitwise-or x u ≡ bitwise-or y v
-  ∨-cong refl refl = refl
-
-  ∧-cong : ∀ {n} {x y u v : BitVector n} → x ≡ y → u ≡ v → bitwise-and x u ≡ bitwise-and y v
-  ∧-cong refl refl = refl
- 
-  isLattice : ∀ {n} → IsLattice _≡_ (bitwise-or {n}) bitwise-and
-  isLattice = record 
-    { isEquivalence = isEquivalence
-    ; ∨-comm = ∨-comm
-    ; ∨-assoc = ∨-assoc
-    ; ∨-cong = ∨-cong
-    ; ∧-comm = ∧-comm
-    ; ∧-assoc = ∧-assoc
-    ; ∧-cong = ∧-cong
-    ; absorptive = ∨∧-absorb , ∧∨-absorb
-    }
-
-  ∨∧-distribʳ : ∀ {n} (x y z : BitVector n) → bitwise-or (bitwise-and y z) x ≡ bitwise-and (bitwise-or y x) (bitwise-or z x)
-  ∨∧-distribʳ [] [] [] = refl
-  ∨∧-distribʳ (x ∷ xs) (y ∷ ys) (z ∷ zs) rewrite BitProperties.∨-∧-distribʳ x y z | ∨∧-distribʳ xs ys zs = refl
-  
-  isDistributiveLattice : ∀ {n} → IsDistributiveLattice _≡_ (bitwise-or {n}) bitwise-and
-  isDistributiveLattice = record
-    { isLattice = isLattice
-    ; ∨-∧-distribʳ = ∨∧-distribʳ
-    }
-
-  ∨-complementʳ : ∀ {n} (x : BitVector n) → bitwise-or x (bitwise-negation x) ≡ ones n
-  ∨-complementʳ [] = refl
-  ∨-complementʳ (x ∷ xs) rewrite BitProperties.∨-complementʳ x | ∨-complementʳ xs = refl
-
-  ∧-complementʳ : ∀ {n} (x : BitVector n) → bitwise-and x (bitwise-negation x) ≡ zero n
-  ∧-complementʳ [] = refl
-  ∧-complementʳ (x ∷ xs) rewrite BitProperties.∧-complementʳ x | ∧-complementʳ xs = refl
-
-  ¬-cong : ∀ {n} {i j : BitVector n} → i ≡ j → bitwise-negation i ≡ bitwise-negation j
-  ¬-cong refl = refl
-
-  isBooleanAlgebra : ∀ {n} → IsBooleanAlgebra _≡_ bitwise-or bitwise-and bitwise-negation (ones n) (zero n)
-  isBooleanAlgebra = record
-    { isDistributiveLattice = isDistributiveLattice
-    ; ∨-complementʳ = ∨-complementʳ
-    ; ∧-complementʳ = ∧-complementʳ
-    ; ¬-cong = ¬-cong
-    }
-
-module Properties {n : ℕ} where
+private
   identityˡ : ∀ {n} x → zero n + x ≡ x
   identityˡ [] = refl
   identityˡ (1# ∷ xs) rewrite identityˡ xs = refl
@@ -99,9 +27,6 @@ module Properties {n : ℕ} where
   identityʳ [] = refl
   identityʳ (1# ∷ xs) rewrite identityʳ xs = refl
   identityʳ (0# ∷ xs) rewrite identityʳ xs = refl
-
-
-  identity = identityˡ , identityʳ
 
   add-carry : ∀ {n} c₁ c₂ (x y z : BitVector n) → add′ c₁ x (add′ c₂ y z) ≡ add′ c₂ x (add′ c₁ y z)
   add-carry c₁ c₂ [] [] [] = refl
@@ -328,34 +253,34 @@ module Properties {n : ℕ} where
   *-distribˡ : ∀ {n} (x y z : BitVector n) → x * (y + z) ≡ (x * y) + (x * z)
   *-distribˡ x y z rewrite *-comm x (y + z) | *-distribʳ x y z | *-comm x y | *-comm x z = refl
 
-  isSemigroup : IsSemigroup _≡_ _+_
-  isSemigroup = record { isEquivalence = isEquivalence; assoc = assoc; ∙-cong = cong₂ _+_ }
+  module Properties n where
+    +-isSemigroup : IsSemigroup _≡_ _+_
+    +-isSemigroup = record { isEquivalence = isEquivalence; assoc = assoc; ∙-cong = cong₂ _+_ }
+
+    +-isMonoid : IsMonoid _≡_ _+_ (zero n)
+    +-isMonoid = record { isSemigroup = +-isSemigroup; identity = identityˡ , identityʳ }
+
+    +-isGroup : IsGroup _≡_ _+_ (zero n) -_
+    +-isGroup = record { isMonoid = +-isMonoid; inverse = inverseˡ , inverseʳ; ⁻¹-cong = cong -_ }
+
+    +-isAbelianGroup : IsAbelianGroup _≡_ _+_ (zero n) -_
+    +-isAbelianGroup = record { isGroup = +-isGroup; comm = comm }
+
+    *-isSemigroup : IsSemigroup _≡_ _*_
+    *-isSemigroup = record { isEquivalence = isEquivalence; assoc = *-assoc; ∙-cong = cong₂ _*_ }
+
+    *-isMonoid : IsMonoid _≡_ _*_ (one n)
+    *-isMonoid = record { isSemigroup = *-isSemigroup; identity = *-identityˡ , *-identityʳ }
+
+    isRing : IsRing _≡_ _+_ _*_ -_ (zero n) (one n)
+    isRing = record { +-isAbelianGroup = +-isAbelianGroup; *-isMonoid = *-isMonoid; distrib = *-distribˡ , *-distribʳ }
+
+    isCommutativeRing : IsCommutativeRing _≡_ _+_ _*_ -_ (zero n) (one n)
+    isCommutativeRing = record { isRing = isRing; *-comm = *-comm }
 
 
-  isMonoid : IsMonoid _≡_ _+_ (zero n)
-  isMonoid = record { isSemigroup = isSemigroup; identity = identity }
-
-
-  isGroup : IsGroup _≡_ _+_ (zero n) -_
-  isGroup = record { isMonoid = isMonoid; inverse = inverseˡ , inverseʳ; ⁻¹-cong = cong -_ }
-
-  isAbelianGroup : IsAbelianGroup _≡_ _+_ (zero n) -_
-  isAbelianGroup = record { isGroup = isGroup; comm = comm }
-
-  *-isSemigroup : IsSemigroup _≡_ _*_
-  *-isSemigroup = record { isEquivalence = isEquivalence; assoc = *-assoc; ∙-cong = cong₂ _*_ }
-
-  *-isMonoid : IsMonoid _≡_ _*_ (one n)
-  *-isMonoid = record { isSemigroup = *-isSemigroup; identity = *-identityˡ , *-identityʳ }
-
-  isRing : IsRing _≡_ _+_ _*_ -_ (zero n) (one n)
-  isRing = record { +-isAbelianGroup = isAbelianGroup; *-isMonoid = *-isMonoid; distrib = *-distribˡ , *-distribʳ }
-
-  isCommutativeRing : IsCommutativeRing _≡_ _+_ _*_ -_ (zero n) (one n)
-  isCommutativeRing = record { isRing = isRing; *-comm = *-comm }
-
-  commutativeRing : CommutativeRing _ _
-  commutativeRing = record {
+commutativeRing : ∀ n → CommutativeRing _ _
+commutativeRing n = record {
                        Carrier = BitVector n;
                        _≈_ = _≡_;
                        _+_ = _+_;
@@ -364,3 +289,4 @@ module Properties {n : ℕ} where
                        0# = zero n;
                        1# = one n;
                        isCommutativeRing = isCommutativeRing }
+  where open Properties n
