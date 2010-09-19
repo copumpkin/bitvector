@@ -6,7 +6,7 @@ open import Algebra
 open import Algebra.Structures
 
 open import Data.Product
-open import Data.Nat hiding (zero; suc)
+open import Data.Nat using (ℕ) renaming (zero to Nzero; suc to Nsuc)
 open import Data.Vec
 
 open import Data.Bool renaming (Bool to Bit; false to 0#; true to 1#)
@@ -89,11 +89,7 @@ module LatticeProperties (n : ℕ) where
     ; ¬-cong = ¬-cong
     }
 
-{-
 module Properties {n : ℕ} where
-
-
-
   identityˡ : ∀ {n} x → zero n + x ≡ x
   identityˡ [] = refl
   identityˡ (1# ∷ xs) rewrite identityˡ xs = refl
@@ -368,4 +364,3 @@ module Properties {n : ℕ} where
                        0# = zero n;
                        1# = one n;
                        isCommutativeRing = isCommutativeRing }
--}
