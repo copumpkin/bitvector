@@ -1,12 +1,12 @@
 module Data.BitVector where
 
-open import Data.Vec hiding (last)
-open import Data.Nat hiding (pred; decTotalOrder; _≤_; _≟_; _≤?_; _<_; compare) renaming (_+_ to _N+_; _*_ to _N*_; zero to Nzero; suc to Nsuc) 
-open import Relation.Binary.PropositionalEquality
-open import Algebra.FunctionProperties.Core
-open import Data.Product
-
+open import Algebra.FunctionProperties.Core using (Op₁; Op₂)
 open import Data.Bool public hiding (_≟_) renaming (Bool to Bit; false to 0#; true to 1#)
+open import Data.Nat using (ℕ)
+                     renaming (_+_ to _N+_; _*_ to _N*_; zero to Nzero; suc to Nsuc)
+open import Data.Product using (_,_; _×_)
+open import Data.Vec using (Vec; _∷_; []; map; tail; zipWith)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
 infixl 6 _+_
 infixl 7 _*_
@@ -44,7 +44,7 @@ one Nzero = []
 one (Nsuc n) = 1# ∷ zero n
 
 bitwise-negation : ∀ {n} → Op₁ (BitVector n)
-bitwise-negation = Data.Vec.map not
+bitwise-negation = map not
 
 ones : ∀ n → BitVector n
 ones n = bitwise-negation (zero n)
@@ -96,7 +96,7 @@ infix 4 _≟_
 
 _≟_ : ∀ {n} → Decidable {A = BitVector n} _≡_
 [] ≟ [] = yes refl
-x ∷ xs ≟ y ∷ ys with xs ≟ ys 
+x ∷ xs ≟ y ∷ ys with xs ≟ ys
 0# ∷ xs ≟ 0# ∷ .xs | yes refl = yes refl
 1# ∷ xs ≟ 1# ∷ .xs | yes refl = yes refl
 1# ∷ xs ≟ 0# ∷ ys  | yes _ = no λ()
@@ -108,6 +108,6 @@ x ∷ xs ≟ y ∷ ys with xs ≟ ys
 
 val1  = 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
 val2  = 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
-val8  = 0# ∷ 0# ∷ 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ [] 
+val8  = 0# ∷ 0# ∷ 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
 val10 = 0# ∷ 1# ∷ 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
 val11 = 1# ∷ 1# ∷ 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
