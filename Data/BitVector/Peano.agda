@@ -3,8 +3,13 @@ module Data.BitVector.Peano where
 open import Data.BitVector
 open import Algebra.FunctionProperties.Core
 open import Data.Nat hiding (pred) renaming (suc to Nsuc; zero to Nzero)
-open import Data.Vec
+open import Data.Vec hiding (fromList)
 open import Relation.Binary.PropositionalEquality
+
+open import Data.Digit hiding (Bit)
+open import Data.Fin using () renaming (zero to Fzero; suc to Fsuc)
+open import Data.List
+
 suc : ∀ {n} → Op₁ (BitVector n)
 suc [] = []
 suc (0# ∷ xs) = 1# ∷ xs
@@ -64,3 +69,19 @@ induction P z s x = peanoInduction (λ {x} _ → P x) z s (toPeano x)
 
 toℕ : ∀ {n} → BitVector n → ℕ
 toℕ = induction _ 0 Nsuc
+
+fromDigit : Digit 2 → Bit
+fromDigit Fzero = 0#
+fromDigit (Fsuc Fzero) = 1#
+fromDigit (Fsuc (Fsuc ()))
+
+fromList : ∀ {n} → List (Digit 2) → BitVector n
+fromList [] = zero _
+fromList {Nzero} (x ∷ xs) = []
+fromList {Nsuc n} (x ∷ xs) = fromDigit x ∷ fromList xs
+
+fromℕ : ∀ {n} → ℕ → BitVector n
+fromℕ n with toDigits 2 n 
+fromℕ .(fromDigits ds) | digits ds = fromList ds
+
+-- TODO: the terrifying proofs that toℕ and fromℕ are inverses
