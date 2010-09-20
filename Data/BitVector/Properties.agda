@@ -8,15 +8,41 @@ open import Algebra.Structures
 
 open import Data.Product
 open import Data.Nat using (ℕ) renaming (zero to Nzero; suc to Nsuc)
-open import Data.Vec
+open import Data.Vec hiding (last)
 
 open import Data.Bool renaming (Bool to Bit; false to 0#; true to 1#)
 
 open import Relation.Binary
 open import Function
 
-
 open import Data.BitVector
+
+last-cons : ∀ {n} x (xs : BitVector (Nsuc n)) → last (x ∷ xs) ≡ last xs
+last-cons _ (x ∷ xs) = refl
+
+last-snoc : ∀ {n} (xs : BitVector n) x → last (snoc xs x) ≡ x
+last-snoc [] _ = refl
+last-snoc (y ∷ []) _ = refl
+last-snoc (y ∷ y′ ∷ ys) x rewrite last-cons y′ (snoc ys x) = last-snoc ys x
+
+droplast-snoc : ∀ {n} (xs : BitVector n) x → droplast (snoc xs x) ≡ xs
+droplast-snoc [] _ = refl
+droplast-snoc (y ∷ ys) x rewrite droplast-snoc ys x = refl
+
+droplast-snoc-last : ∀ {n} (x : BitVector (Nsuc n)) → snoc (droplast x) (last x) ≡ x
+droplast-snoc-last (x ∷ []) = refl
+droplast-snoc-last (x ∷ x′ ∷ xs) rewrite droplast-snoc-last (x′ ∷ xs) = refl
+
+rotate∘unrotate≡id : ∀ {n} (x : BitVector n) → rotate (unrotate x) ≡ x
+rotate∘unrotate≡id [] = refl
+rotate∘unrotate≡id (x ∷ []) = refl
+rotate∘unrotate≡id (x ∷ x′ ∷ xs) rewrite last-cons x′ (snoc xs x)
+                                      | last-snoc xs x
+                                      | droplast-snoc xs x = refl
+
+unrotate∘rotate≡id : ∀ {n} (x : BitVector n) → unrotate (rotate x) ≡ x
+unrotate∘rotate≡id [] = refl
+unrotate∘rotate≡id (x ∷ xs) = droplast-snoc-last (x ∷ xs)
 
 
 private

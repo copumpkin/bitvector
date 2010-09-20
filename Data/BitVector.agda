@@ -1,6 +1,6 @@
 module Data.BitVector where
 
-open import Data.Vec
+open import Data.Vec hiding (last)
 open import Data.Nat hiding (pred; decTotalOrder; _≤_; _≟_; _≤?_; _<_; compare) renaming (_+_ to _N+_; _*_ to _N*_; zero to Nzero; suc to Nsuc) 
 open import Relation.Binary.PropositionalEquality
 open import Algebra.FunctionProperties.Core
@@ -53,10 +53,30 @@ droplast : ∀ {n} → BitVector (Nsuc n) → BitVector n
 droplast {Nzero} _ = []
 droplast {Nsuc n} (x ∷ xs) = x ∷ droplast xs
 
+last : ∀ {n} → BitVector (Nsuc n) → Bit
+last (x ∷ []) = x
+last {Nsuc n} (x ∷ xs) = last xs
+
 shift : ∀ {n} → Op₁ (BitVector n)
 shift {Nzero} xs = xs
 shift {Nsuc n} xs = 0# ∷ droplast xs
 
+
+snoc : ∀ {n} → BitVector n → Bit → BitVector (Nsuc n)
+snoc [] b = b ∷ []
+snoc (x ∷ xs) b = x ∷ snoc xs b
+
+unshift : ∀ {n} → Op₁ (BitVector n)
+unshift [] = []
+unshift (x ∷ xs) = snoc xs 0#
+
+rotate : ∀ {n} → Op₁ (BitVector n)
+rotate [] = []
+rotate {Nsuc n} xs = last xs ∷ droplast xs
+
+unrotate : ∀ {n} → Op₁ (BitVector n)
+unrotate [] = []
+unrotate (x ∷ xs) = snoc xs x
 
 _*_ : ∀ {n} → Op₂ (BitVector n)
 [] * [] = []
