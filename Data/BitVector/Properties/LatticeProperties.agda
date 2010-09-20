@@ -6,8 +6,9 @@ open import Data.BitVector
 open import Algebra.Structures
 open import Relation.Binary.PropositionalEquality
 open import Data.Vec
-open import Data.Product
+open import Data.Product hiding (map)
 import Data.Bool.Properties as Bool
+
 
 private
   module BitProperties = IsBooleanAlgebra Bool.isBooleanAlgebra
@@ -75,10 +76,14 @@ private
   ¬-cong : ∀ {n} {i j : BitVector n} → i ≡ j → bitwise-negation i ≡ bitwise-negation j
   ¬-cong refl = refl
 
-  isBooleanAlgebra : ∀ {n} → IsBooleanAlgebra _≡_ bitwise-or bitwise-and bitwise-negation (ones n) (zero n)
-  isBooleanAlgebra = record
-    { isDistributiveLattice = isDistributiveLattice
-    ; ∨-complementʳ = ∨-complementʳ
-    ; ∧-complementʳ = ∧-complementʳ
-    ; ¬-cong = ¬-cong
-    }
+
+
+
+
+isBooleanAlgebra : ∀ {n} → IsBooleanAlgebra _≡_ bitwise-or bitwise-and bitwise-negation (ones n) (zero n)
+isBooleanAlgebra = record
+  { isDistributiveLattice = isDistributiveLattice
+  ; ∨-complementʳ = ∨-complementʳ
+  ; ∧-complementʳ = ∧-complementʳ
+  ; ¬-cong = ¬-cong
+  }
