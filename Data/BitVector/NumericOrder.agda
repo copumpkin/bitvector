@@ -12,13 +12,12 @@ open import Data.Nat hiding (decTotalOrder; _≟_; _<_; _≤_; _≤?_; compare) 
 
 open import Data.BitVector
 
+open import Function
+
 infix 4 _<_
 infix 4 _q≤_ 
 
 mutual
-  -- TODO: merge 1#<1# and 0#<0# and 1#≤1# and 0#≤0#. That should clean up the proofs a bit.
-
-  -- Is keeping this inductive (rather than working with suc) really worth it? Check out the transitivity proofs further down :(
   data _<_ : ∀ {n} → BitVector n → BitVector n → Set where
     b#<b# : ∀ {n} {x y : BitVector n} {b#} → (pf : x < y) → (b# ∷ x) < (b# ∷ y)
 
@@ -131,46 +130,31 @@ mutual
 ≤⇒≡⊎< (0#≤1# pf) = inj₂ (0#<1# pf)
 ≤⇒≡⊎< (1#≤0# pf) = inj₂ (1#<0# pf)
 
+helper≢ : ∀ {n} {x y} {xs ys : BitVector n} → ¬ xs < ys → xs ≢ ys → ¬ x ∷ xs < y ∷ ys
+helper≢ xs≮ys xs≢ys (b#<b# pf) = xs≮ys pf
+helper≢ xs≮ys xs≢ys (1#<0# pf) = xs≮ys pf
+helper≢ xs≮ys xs≢ys (0#<1# pf) with ≤⇒≡⊎< pf
+...                               | inj₁ x≡y = xs≢ys x≡y
+...                               | inj₂ x<y = xs≮ys x<y
+
+helper≡ : ∀ {n} {xs : BitVector n} → ¬ 1# ∷ xs < 0# ∷ xs
+helper≡ (1#<0# pf) = <-irr pf
 
 compare : ∀ {n} → Trichotomous _≡_ (_<_ {n})
 compare [] [] = tri≈ (λ ()) refl (λ ())
 compare (x ∷ xs) (y ∷ ys) with compare xs ys 
-compare (0# ∷ xs) (0# ∷ ys) | tri< a ¬b ¬c = tri< (b#<b# a) (λ xs≡ys → ¬b (cong tail xs≡ys)) helper
-  where helper : ¬ (0# ∷ ys) < (0# ∷ xs)
-        helper (b#<b# pf) = ¬c pf
-compare (0# ∷ xs) (1# ∷ ys) | tri< a ¬b ¬c = tri< (0#<1# (<⇒≤ a)) (λ xs≡ys → ¬b (cong tail xs≡ys)) helper
-  where helper : ¬ (1# ∷ ys) < (0# ∷ xs)
-        helper (1#<0# pf) = ¬c pf
-compare (1# ∷ xs) (0# ∷ ys) | tri< a ¬b ¬c = tri< (1#<0# a) (λ xs≡ys → ¬b (cong tail xs≡ys)) helper
-  where helper : ¬ (0# ∷ ys) < (1# ∷ xs)
-        helper (0#<1# pf) with ≤⇒≡⊎< pf
-        ...                  | inj₁ x≡y = ¬b (sym x≡y)
-        ...                  | inj₂ x<y = ¬c x<y
-compare (1# ∷ xs) (1# ∷ ys) | tri< a ¬b ¬c = tri< (b#<b# a) (λ xs≡ys → ¬b (cong tail xs≡ys)) helper
-  where helper : ¬ (1# ∷ ys) < (1# ∷ xs)
-        helper (b#<b# pf) = ¬c pf
-compare (0# ∷ xs) (0# ∷ ys) | tri≈ ¬a b ¬c rewrite b = tri≈ <-irr refl <-irr
-compare (0# ∷ xs) (1# ∷ ys) | tri≈ ¬a b ¬c rewrite b = tri< (0#<1# (≤-refl refl)) (λ ()) helper
-  where helper : ¬ (1# ∷ ys) < (0# ∷ ys)
-        helper (1#<0# pf) = ¬c pf
-compare (1# ∷ xs) (0# ∷ ys) | tri≈ ¬a b ¬c rewrite b = tri> helper (λ ()) (0#<1# (≤-refl refl))
-  where helper : ¬ (1# ∷ ys) < (0# ∷ ys)
-        helper (1#<0# pf) = ¬a pf
-compare (1# ∷ xs) (1# ∷ ys) | tri≈ ¬a b ¬c rewrite b = tri≈ <-irr refl <-irr
-compare (0# ∷ xs) (0# ∷ ys) | tri> ¬a ¬b c = tri> helper  (λ xs≡ys → ¬b (cong tail xs≡ys)) (b#<b# c) 
-  where helper : ¬ (0# ∷ xs) < (0# ∷ ys)
-        helper (b#<b# pf) = ¬a pf
-compare (0# ∷ xs) (1# ∷ ys) | tri> ¬a ¬b c = tri> helper (λ ()) (1#<0# c)
-  where helper : ¬ (0# ∷ xs) < (1# ∷ ys)
-        helper (0#<1# pf) with ≤⇒≡⊎< pf
-        ...                  | inj₁ x≡y = ¬b x≡y
-        ...                  | inj₂ x<y = ¬a x<y
-compare (1# ∷ xs) (0# ∷ ys) | tri> ¬a ¬b c = tri> helper (λ ()) (0#<1# (<⇒≤ c)) 
-  where helper : ¬ (1# ∷ xs) < (0# ∷ ys)
-        helper (1#<0# pf) = ¬a pf
-compare (1# ∷ xs) (1# ∷ ys) | tri> ¬a ¬b c = tri> helper  (λ xs≡ys → ¬b (cong tail xs≡ys)) (b#<b# c) 
-  where helper : ¬ (1# ∷ xs) < (1# ∷ ys)
-        helper (b#<b# pf) = ¬a pf
+compare (0# ∷ xs) (0# ∷ ys) | tri< a ¬b ¬c = tri< (b#<b# a)       (¬b ∘ cong tail) (helper≢ ¬c (¬b ∘ sym))
+compare (0# ∷ xs) (1# ∷ ys) | tri< a ¬b ¬c = tri< (0#<1# (<⇒≤ a)) (¬b ∘ cong tail) (helper≢ ¬c (¬b ∘ sym))
+compare (1# ∷ xs) (0# ∷ ys) | tri< a ¬b ¬c = tri< (1#<0# a)       (¬b ∘ cong tail) (helper≢ ¬c (¬b ∘ sym))
+compare (1# ∷ xs) (1# ∷ ys) | tri< a ¬b ¬c = tri< (b#<b# a)       (¬b ∘ cong tail) (helper≢ ¬c (¬b ∘ sym))
+compare (0# ∷ xs) (0# ∷ ._) | tri≈ ¬a refl ¬c = tri≈ <-irr refl <-irr
+compare (0# ∷ xs) (1# ∷ ._) | tri≈ ¬a refl ¬c = tri< (0#<1# (≤-refl refl)) (λ ()) helper≡
+compare (1# ∷ xs) (0# ∷ ._) | tri≈ ¬a refl ¬c = tri> helper≡ (λ ()) (0#<1# (≤-refl refl))
+compare (1# ∷ xs) (1# ∷ ._) | tri≈ ¬a refl ¬c = tri≈ <-irr refl <-irr
+compare (0# ∷ xs) (0# ∷ ys) | tri> ¬a ¬b c = tri> (helper≢ ¬a ¬b) (¬b ∘ cong tail) (b#<b# c) 
+compare (0# ∷ xs) (1# ∷ ys) | tri> ¬a ¬b c = tri> (helper≢ ¬a ¬b) (λ ()) (1#<0# c)
+compare (1# ∷ xs) (0# ∷ ys) | tri> ¬a ¬b c = tri> (helper≢ ¬a ¬b) (λ ()) (0#<1# (<⇒≤ c)) 
+compare (1# ∷ xs) (1# ∷ ys) | tri> ¬a ¬b c = tri> (helper≢ ¬a ¬b) (¬b ∘ cong tail) (b#<b# c) 
 
 ≤-total : ∀ {n} → Total (_q≤_ {n})
 ≤-total [] [] = inj₁ []≤[]
