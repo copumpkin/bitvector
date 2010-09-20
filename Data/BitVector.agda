@@ -1,11 +1,10 @@
 module Data.BitVector where
 
 open import Data.Vec
-open import Data.Nat hiding (pred) renaming (_+_ to _N+_; _*_ to _N*_; zero to Nzero; suc to Nsuc; _≤_ to _N≤_; _≟_ to _N≟_; _≤?_ to _N≤?_; _<_ to _N<_ ;compare to compareℕ) 
+open import Data.Nat hiding (pred; decTotalOrder; _≤_; _≟_; _≤?_; _<_; compare) renaming (_+_ to _N+_; _*_ to _N*_; zero to Nzero; suc to Nsuc) 
 open import Relation.Binary.PropositionalEquality
 open import Algebra.FunctionProperties.Core
 open import Data.Product
-
 
 open import Data.Bool public hiding (_≟_) renaming (Bool to Bit; false to 0#; true to 1#)
 
@@ -68,13 +67,10 @@ _*_ : ∀ {n} → Op₂ (BitVector n)
 
 -_ : ∀ {n} → Op₁ (BitVector n)
 - x = one _ + bitwise-negation x
- 
-val10 = 0# ∷ 1# ∷ 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
-val11 = 1# ∷ 1# ∷ 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
+
 
 open import Relation.Nullary
 open import Relation.Binary
-
 
 infix 4 _≟_
 
@@ -88,59 +84,251 @@ x ∷ xs ≟ y ∷ ys with xs ≟ ys
 ...                | no pf = no (λ q → pf (cong tail q))
 
 
--- I should just parametrize the entire module by the size... maybe later though
+
+
+val1  = 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
+val2  = 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
+val8  = 0# ∷ 0# ∷ 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ [] 
+val10 = 0# ∷ 1# ∷ 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
+val11 = 1# ∷ 1# ∷ 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
+
 module Order where
   open import Data.Sum
+  open import Data.Empty
+
+  infix 4 _<_
   infix 4 _q≤_ 
 
-  -- Silly agda bug is preventing me from using the _≤_ name even though it's not in scope :(
-  data _q≤_ : ∀ {n} → BitVector n → BitVector n → Set where
-    []≤[] : [] q≤ []
-    0#≤n  : ∀ {n} {x y : BitVector n} {b} → (pf : x q≤ y) → (0# ∷ x) q≤ (b ∷ y)
-    1#≤1# : ∀ {n} {x y : BitVector n} → (pf : x q≤ y) → (1# ∷ x) q≤ (1# ∷ y)
+  mutual
+    -- TODO: merge 1#<1# and 0#<0# and 1#≤1# and 0#≤0#. That should clean up the proofs a bit.
+
+    -- Is keeping this inductive (rather than working with suc) really worth it? Check out the transitivity proofs further down :(
+    data _<_ : ∀ {n} → BitVector n → BitVector n → Set where
+      0#<0# : ∀ {n} {x y : BitVector n} → (pf : x < y) → (0# ∷ x) < (0# ∷ y)
+      1#<1# : ∀ {n} {x y : BitVector n} → (pf : x < y) → (1# ∷ x) < (1# ∷ y)
+
+      0#<1# : ∀ {n} {x y : BitVector n} → (pf : x q≤ y) → (0# ∷ x) < (1# ∷ y)
+      1#<0# : ∀ {n} {x y : BitVector n} → (pf : x < y) → (1# ∷ x) < (0# ∷ y)
+
+    -- Silly agda bug is preventing me from using the _≤_ name even though it's not in scope :(
+    data _q≤_ : ∀ {n} → BitVector n → BitVector n → Set where
+      []≤[] : [] q≤ []
+      0#≤0# : ∀ {n} {x y : BitVector n} → (pf : x q≤ y) → (0# ∷ x) q≤ (0# ∷ y)
+      1#≤1# : ∀ {n} {x y : BitVector n} → (pf : x q≤ y) → (1# ∷ x) q≤ (1# ∷ y)
+  
+      0#≤1# : ∀ {n} {x y : BitVector n} → (pf : x q≤ y) → (0# ∷ x) q≤ (1# ∷ y)
+      1#≤0# : ∀ {n} {x y : BitVector n} → (pf : x <  y) → (1# ∷ x) q≤ (0# ∷ y)
+
+  <-irr : ∀ {n} {x : BitVector n} → ¬ x < x
+  <-irr {0} ()
+  <-irr (0#<0# pf) = <-irr pf
+  <-irr (1#<1# pf) = <-irr pf
+
+  ≤-refl : ∀ {n} → _≡_ ⇒ (_q≤_ {n})
+  ≤-refl {0} {[]} refl = []≤[]
+  ≤-refl {Nsuc n} {0# ∷ xs} refl = 0#≤0# (≤-refl refl)
+  ≤-refl {Nsuc n} {1# ∷ xs} refl = 1#≤1# (≤-refl refl)
+
+  opposites : ∀ {n} {x y : BitVector n} → x q≤ y → y < x → ⊥
+  opposites []≤[] ()
+  opposites (0#≤0# pf₀) (0#<0# pf₁) = opposites pf₀ pf₁
+  opposites (1#≤1# pf₀) (1#<1# pf₁) = opposites pf₀ pf₁
+  opposites (0#≤1# pf₀) (1#<0# pf₁) = opposites pf₀ pf₁
+  opposites (1#≤0# pf₀) (0#<1# pf₁) = opposites pf₁ pf₀
+
+  ≤-antisym : ∀ {n} → Antisymmetric _≡_ (_q≤_ {n})
+  ≤-antisym []≤[] q = refl
+  ≤-antisym (0#≤0# pf₀) (0#≤0# pf₁) rewrite ≤-antisym pf₀ pf₁ = refl
+  ≤-antisym (1#≤1# pf₀) (1#≤1# pf₁) rewrite ≤-antisym pf₀ pf₁ = refl
+  ≤-antisym (0#≤1# (0#≤0# pf₀)) (1#≤0# (0#<0# pf₁)) = ⊥-elim (opposites pf₀ pf₁)
+  ≤-antisym (0#≤1# (1#≤1# pf₀)) (1#≤0# (1#<1# pf₁)) = ⊥-elim (opposites pf₀ pf₁)
+  ≤-antisym (0#≤1# (1#≤0# pf₀)) (1#≤0# (0#<1# pf₁)) = ⊥-elim (opposites pf₁ pf₀)
+  ≤-antisym (0#≤1# (0#≤1# pf₀)) (1#≤0# (1#<0# pf₁)) = ⊥-elim (opposites pf₀ pf₁)
+  ≤-antisym (0#≤1# pf₀) (1#≤0# pf₁) = ⊥-elim (opposites pf₀ pf₁)
+  ≤-antisym (1#≤0# pf₀) (0#≤1# pf₁) = ⊥-elim (opposites pf₁ pf₀)
+
+  mutual
+    ≤-<-trans-< : ∀ {n} {x y z : BitVector n} → x q≤ y → y < z → x < z
+    ≤-<-trans-< []≤[] ()
+    ≤-<-trans-< (0#≤0# pf₀) (0#<0# pf₁) = 0#<0# (≤-<-trans-< pf₀ pf₁)
+    ≤-<-trans-< (0#≤0# pf₀) (0#<1# pf₁) = 0#<1# (≤-trans pf₀ pf₁)
+    ≤-<-trans-< (1#≤1# pf₀) (1#<1# pf₁) = 1#<1# (≤-<-trans-< pf₀ pf₁)
+    ≤-<-trans-< (1#≤1# pf₀) (1#<0# pf₁) = 1#<0# (≤-<-trans-< pf₀ pf₁)
+    ≤-<-trans-< (0#≤1# pf₀) (1#<1# pf₁) = 0#<1# (≤-<-trans-≤ pf₀ pf₁)
+    ≤-<-trans-< (0#≤1# pf₀) (1#<0# pf₁) = 0#<0# (≤-<-trans-< pf₀ pf₁)
+    ≤-<-trans-< (1#≤0# pf₀) (0#<0# pf₁) = 1#<0# (<-trans pf₀ pf₁)
+    ≤-<-trans-< (1#≤0# pf₀) (0#<1# pf₁) = 1#<1# (<-≤-trans-< pf₀ pf₁)
+
+    <-≤-trans-< : ∀ {n} {x y z : BitVector n} → x < y → y q≤ z → x < z
+    <-≤-trans-< (0#<0# pf₀) (0#≤0# pf₁) = 0#<0# (<-≤-trans-< pf₀ pf₁)
+    <-≤-trans-< (0#<0# pf₀) (0#≤1# pf₁) = 0#<1# (<-≤-trans-≤ pf₀ pf₁)
+    <-≤-trans-< (1#<1# pf₀) (1#≤1# pf₁) = 1#<1# (<-≤-trans-< pf₀ pf₁)
+    <-≤-trans-< (1#<1# pf₀) (1#≤0# pf₁) = 1#<0# (<-trans pf₀ pf₁)
+    <-≤-trans-< (0#<1# pf₀) (1#≤1# pf₁) = 0#<1# (≤-trans pf₀ pf₁)
+    <-≤-trans-< (0#<1# pf₀) (1#≤0# pf₁) = 0#<0# (≤-<-trans-< pf₀ pf₁)
+    <-≤-trans-< (1#<0# pf₀) (0#≤0# pf₁) = 1#<0# (<-≤-trans-< pf₀ pf₁)
+    <-≤-trans-< (1#<0# pf₀) (0#≤1# pf₁) = 1#<1# (<-≤-trans-< pf₀ pf₁)
+
+    ≤-<-trans-≤ : ∀ {n} {x y z : BitVector n} → x q≤ y → y < z → x q≤ z
+    ≤-<-trans-≤ []≤[] ()
+    ≤-<-trans-≤ (0#≤0# pf₀) (0#<0# pf₁) = 0#≤0# (≤-<-trans-≤ pf₀ pf₁)
+    ≤-<-trans-≤ (0#≤0# pf₀) (0#<1# pf₁) = 0#≤1# (≤-trans pf₀ pf₁)
+    ≤-<-trans-≤ (1#≤1# pf₀) (1#<1# pf₁) = 1#≤1# (≤-<-trans-≤ pf₀ pf₁)
+    ≤-<-trans-≤ (1#≤1# pf₀) (1#<0# pf₁) = 1#≤0# (≤-<-trans-< pf₀ pf₁)
+    ≤-<-trans-≤ (0#≤1# pf₀) (1#<1# pf₁) = 0#≤1# (≤-<-trans-≤ pf₀ pf₁)
+    ≤-<-trans-≤ (0#≤1# pf₀) (1#<0# pf₁) = 0#≤0# (≤-<-trans-≤ pf₀ pf₁)
+    ≤-<-trans-≤ (1#≤0# pf₀) (0#<0# pf₁) = 1#≤0# (<-trans pf₀ pf₁)
+    ≤-<-trans-≤ (1#≤0# pf₀) (0#<1# pf₁) = 1#≤1# (<-≤-trans-≤ pf₀ pf₁)
+
+    <-≤-trans-≤ : ∀ {n} {x y z : BitVector n} → x < y → y q≤ z → x q≤ z
+    <-≤-trans-≤ (0#<0# pf₀) (0#≤0# pf₁) = 0#≤0# (<-≤-trans-≤ pf₀ pf₁)
+    <-≤-trans-≤ (0#<0# pf₀) (0#≤1# pf₁) = 0#≤1# (<-≤-trans-≤ pf₀ pf₁)
+    <-≤-trans-≤ (1#<1# pf₀) (1#≤1# pf₁) = 1#≤1# (<-≤-trans-≤ pf₀ pf₁)
+    <-≤-trans-≤ (1#<1# pf₀) (1#≤0# pf₁) = 1#≤0# (<-trans pf₀ pf₁)
+    <-≤-trans-≤ (0#<1# pf₀) (1#≤1# pf₁) = 0#≤1# (≤-trans pf₀ pf₁)
+    <-≤-trans-≤ (0#<1# pf₀) (1#≤0# pf₁) = 0#≤0# (≤-<-trans-≤ pf₀ pf₁)
+    <-≤-trans-≤ (1#<0# pf₀) (0#≤0# pf₁) = 1#≤0# (<-≤-trans-< pf₀ pf₁)
+    <-≤-trans-≤ (1#<0# pf₀) (0#≤1# pf₁) = 1#≤1# (<-≤-trans-≤ pf₀ pf₁)
+
+    <-trans : ∀ {n} → Transitive (_<_ {n})
+    <-trans (0#<0# pf₀) (0#<0# pf₁) = 0#<0# (<-trans pf₀ pf₁)
+    <-trans (0#<0# pf₀) (0#<1# pf₁) = 0#<1# (<-≤-trans-≤ pf₀ pf₁)
+    <-trans (1#<1# pf₀) (1#<1# pf₁) = 1#<1# (<-trans pf₀ pf₁)
+    <-trans (1#<1# pf₀) (1#<0# pf₁) = 1#<0# (<-trans pf₀ pf₁)
+    <-trans (0#<1# pf₀) (1#<1# pf₁) = 0#<1# (≤-<-trans-≤ pf₀ pf₁)
+    <-trans (0#<1# pf₀) (1#<0# pf₁) = 0#<0# (≤-<-trans-< pf₀ pf₁)
+    <-trans (1#<0# pf₀) (0#<0# pf₁) = 1#<0# (<-trans pf₀ pf₁)
+    <-trans (1#<0# pf₀) (0#<1# pf₁) = 1#<1# (<-≤-trans-< pf₀ pf₁)
+
+    ≤-trans : ∀ {n} → Transitive (_q≤_ {n})
+    ≤-trans []≤[] []≤[] = []≤[]
+    ≤-trans (0#≤0# pf₀) (0#≤0# pf₁) = 0#≤0# (≤-trans pf₀ pf₁)
+    ≤-trans (0#≤0# pf₀) (0#≤1# pf₁) = 0#≤1# (≤-trans pf₀ pf₁)
+    ≤-trans (1#≤1# pf₀) (1#≤1# pf₁) = 1#≤1# (≤-trans pf₀ pf₁)
+    ≤-trans (1#≤1# pf₀) (1#≤0# pf₁) = 1#≤0# (≤-<-trans-< pf₀ pf₁)
+    ≤-trans (0#≤1# pf₀) (1#≤1# pf₁) = 0#≤1# (≤-trans pf₀ pf₁)
+    ≤-trans (0#≤1# pf₀) (1#≤0# pf₁) = 0#≤0# (≤-<-trans-≤ pf₀ pf₁)
+    ≤-trans (1#≤0# pf₀) (0#≤0# pf₁) = 1#≤0# (<-≤-trans-< pf₀ pf₁)
+    ≤-trans (1#≤0# pf₀) (0#≤1# pf₁) = 1#≤1# (<-≤-trans-≤ pf₀ pf₁)
+
+
+
+  <⇒≤ : ∀ {n} {x y : BitVector n} → x < y → x q≤ y
+  <⇒≤ (0#<0# pf) = 0#≤0# (<⇒≤ pf)
+  <⇒≤ (1#<1# pf) = 1#≤1# (<⇒≤ pf)
+  <⇒≤ (0#<1# pf) = 0#≤1# pf
+  <⇒≤ (1#<0# pf) = 1#≤0# pf
+  
+  ≤⇒≡⊎< : ∀ {n} → {x y : BitVector n} → x q≤ y → x ≡ y ⊎ x < y
+  ≤⇒≡⊎< []≤[] = inj₁ refl
+  ≤⇒≡⊎< (0#≤0# pf) with ≤⇒≡⊎< pf
+  ...                 | inj₁ x≡y rewrite x≡y = inj₁ refl
+  ...                 | inj₂ x<y = inj₂ (0#<0# x<y)
+  ≤⇒≡⊎< (1#≤1# pf) with  ≤⇒≡⊎< pf
+  ...                 | inj₁ x≡y rewrite x≡y = inj₁ refl
+  ...                 | inj₂ x<y = inj₂ (1#<1# x<y)
+  ≤⇒≡⊎< (0#≤1# pf) = inj₂ (0#<1# pf)
+  ≤⇒≡⊎< (1#≤0# pf) = inj₂ (1#<0# pf)
+
+  compare : ∀ {n} → Trichotomous _≡_ (_<_ {n})
+  compare [] [] = tri≈ (λ ()) refl (λ ())
+  compare (x ∷ xs) (y ∷ ys) with compare xs ys 
+  compare (0# ∷ xs) (0# ∷ ys) | tri< a ¬b ¬c = tri< (0#<0# a) (λ xs≡ys → ¬b (cong tail xs≡ys)) helper
+    where helper : ¬ (0# ∷ ys) < (0# ∷ xs)
+          helper (0#<0# pf) = ¬c pf
+  compare (0# ∷ xs) (1# ∷ ys) | tri< a ¬b ¬c = tri< (0#<1# (<⇒≤ a)) (λ xs≡ys → ¬b (cong tail xs≡ys)) helper
+    where helper : ¬ (1# ∷ ys) < (0# ∷ xs)
+          helper (1#<0# pf) = ¬c pf
+  compare (1# ∷ xs) (0# ∷ ys) | tri< a ¬b ¬c = tri< (1#<0# a) (λ xs≡ys → ¬b (cong tail xs≡ys)) helper
+    where helper : ¬ (0# ∷ ys) < (1# ∷ xs)
+          helper (0#<1# pf) with ≤⇒≡⊎< pf
+          ...                  | inj₁ x≡y = ¬b (sym x≡y)
+          ...                  | inj₂ x<y = ¬c x<y
+  compare (1# ∷ xs) (1# ∷ ys) | tri< a ¬b ¬c = tri< (1#<1# a) (λ xs≡ys → ¬b (cong tail xs≡ys)) helper
+    where helper : ¬ (1# ∷ ys) < (1# ∷ xs)
+          helper (1#<1# pf) = ¬c pf
+  compare (0# ∷ xs) (0# ∷ ys) | tri≈ ¬a b ¬c rewrite b = tri≈ <-irr refl <-irr
+  compare (0# ∷ xs) (1# ∷ ys) | tri≈ ¬a b ¬c rewrite b = tri< (0#<1# (≤-refl refl)) (λ ()) helper
+    where helper : ¬ (1# ∷ ys) < (0# ∷ ys)
+          helper (1#<0# pf) = ¬c pf
+  compare (1# ∷ xs) (0# ∷ ys) | tri≈ ¬a b ¬c rewrite b = tri> helper (λ ()) (0#<1# (≤-refl refl))
+    where helper : ¬ (1# ∷ ys) < (0# ∷ ys)
+          helper (1#<0# pf) = ¬a pf
+  compare (1# ∷ xs) (1# ∷ ys) | tri≈ ¬a b ¬c rewrite b = tri≈ <-irr refl <-irr
+  compare (0# ∷ xs) (0# ∷ ys) | tri> ¬a ¬b c = tri> helper  (λ xs≡ys → ¬b (cong tail xs≡ys)) (0#<0# c) 
+    where helper : ¬ (0# ∷ xs) < (0# ∷ ys)
+          helper (0#<0# pf) = ¬a pf
+  compare (0# ∷ xs) (1# ∷ ys) | tri> ¬a ¬b c = tri> helper (λ ()) (1#<0# c)
+    where helper : ¬ (0# ∷ xs) < (1# ∷ ys)
+          helper (0#<1# pf) with ≤⇒≡⊎< pf
+          ...                  | inj₁ x≡y = ¬b x≡y
+          ...                  | inj₂ x<y = ¬a x<y
+  compare (1# ∷ xs) (0# ∷ ys) | tri> ¬a ¬b c = tri> helper (λ ()) (0#<1# (<⇒≤ c)) 
+    where helper : ¬ (1# ∷ xs) < (0# ∷ ys)
+          helper (1#<0# pf) = ¬a pf
+  compare (1# ∷ xs) (1# ∷ ys) | tri> ¬a ¬b c = tri> helper  (λ xs≡ys → ¬b (cong tail xs≡ys)) (1#<1# c) 
+    where helper : ¬ (1# ∷ xs) < (1# ∷ ys)
+          helper (1#<1# pf) = ¬a pf
+
+  ≤-total : ∀ {n} → Total (_q≤_ {n})
+  ≤-total [] [] = inj₁ []≤[]
+  ≤-total (x  ∷ xs) (y  ∷ ys) with compare xs ys 
+  ≤-total (0# ∷ xs) (0# ∷ ys) | tri< a ¬b ¬c = inj₁ (0#≤0# (<⇒≤ a))
+  ≤-total (0# ∷ xs) (1# ∷ ys) | tri< a ¬b ¬c = inj₁ (0#≤1# (<⇒≤ a))
+  ≤-total (1# ∷ xs) (0# ∷ ys) | tri< a ¬b ¬c = inj₁ (1#≤0# a)
+  ≤-total (1# ∷ xs) (1# ∷ ys) | tri< a ¬b ¬c = inj₁ (1#≤1# (<⇒≤ a))
+  ≤-total (0# ∷ xs) (0# ∷ ys) | tri≈ ¬a b ¬c = inj₁ (0#≤0# (≤-refl b))
+  ≤-total (0# ∷ xs) (1# ∷ ys) | tri≈ ¬a b ¬c = inj₁ (0#≤1# (≤-refl b))
+  ≤-total (1# ∷ xs) (0# ∷ ys) | tri≈ ¬a b ¬c = inj₂ (0#≤1# (≤-refl (sym b)))
+  ≤-total (1# ∷ xs) (1# ∷ ys) | tri≈ ¬a b ¬c = inj₁ (1#≤1# (≤-refl b))
+  ≤-total (0# ∷ xs) (0# ∷ ys) | tri> ¬a ¬b c = inj₂ (0#≤0# (<⇒≤ c))
+  ≤-total (0# ∷ xs) (1# ∷ ys) | tri> ¬a ¬b c = inj₂ (1#≤0# c)
+  ≤-total (1# ∷ xs) (0# ∷ ys) | tri> ¬a ¬b c = inj₂ (0#≤1# (<⇒≤ c))
+  ≤-total (1# ∷ xs) (1# ∷ ys) | tri> ¬a ¬b c = inj₂ (1#≤1# (<⇒≤ c))
 
   _≤?_ : ∀ {n} → Decidable (_q≤_ {n})
-  [] ≤? [] = yes []≤[]
-  (x  ∷ xs) ≤? (y  ∷ ys) with xs ≤? ys
-  (0# ∷ xs) ≤? (0# ∷ ys)    | yes pf = yes (0#≤n pf)
-  (0# ∷ xs) ≤? (1# ∷ ys)    | yes pf = yes (0#≤n pf)
-  (1# ∷ xs) ≤? (0# ∷ ys)    | yes pf = no  (λ ())
-  (1# ∷ xs) ≤? (1# ∷ ys)    | yes pf = yes (1#≤1# pf)
-  (0# ∷ xs) ≤? (y  ∷ ys)    | no  pf = no  (λ q → pf (helper q))
-    -- I wanna pattern-match in lambdas dammit
-    where helper : 0# ∷ xs q≤ y ∷ ys → xs q≤ ys
-          helper (0#≤n pf) = pf
-  (1# ∷ xs) ≤? (0# ∷ ys)    | no  pf = no  (λ ())
-  (1# ∷ xs) ≤? (1# ∷ ys)    | no  pf = no  (λ q → pf (helper q))
-    where helper : 1# ∷ xs q≤ 1# ∷ ys → xs q≤ ys
-          helper (1#≤1# pf) = pf
+  x ≤? y with compare x y
+  ...       | tri< a ¬b ¬c = yes (<⇒≤ a)
+  ...       | tri≈ ¬a b ¬c = yes (≤-refl b)
+  ...       | tri> ¬a ¬b c = no  helper
+    where helper : ¬ x q≤ y
+          helper x≤y with ≤⇒≡⊎< x≤y
+          ...           | inj₁ x≡y = ¬b x≡y 
+          ...           | inj₂ x<y = ¬a x<y
 
-  refl′ : ∀ {n} → _≡_ ⇒ (_q≤_ {n})
-  refl′ {0} {[]} refl = []≤[]
-  refl′ {Nsuc n} {0# ∷ xs} refl = 0#≤n (refl′ refl)
-  refl′ {Nsuc n} {1# ∷ xs} refl = 1#≤1# (refl′ refl)
+decTotalOrder : ∀ {n} → DecTotalOrder _ _ _
+decTotalOrder {n} = record
+  { Carrier         = BitVector n
+  ; _≈_             = _≡_
+  ; _≤_             = _q≤_
+  ; isDecTotalOrder = record
+      { isTotalOrder = record
+          { isPartialOrder = record
+              { isPreorder = record
+                  { isEquivalence = isEquivalence
+                  ; reflexive     = ≤-refl
+                  ; trans         = ≤-trans
+                  }
+              ; antisym  = ≤-antisym
+              }
+          ; total = ≤-total
+          }
+      ; _≟_  = _≟_
+      ; _≤?_ = _≤?_
+      }
+  }
+  where open Order
 
-  antisym : ∀ {n} → Antisymmetric _≡_ (_q≤_ {n})
-  antisym []≤[] q = refl
-  antisym (0#≤n pf₀) (0#≤n pf₁) rewrite antisym pf₀ pf₁ = refl
-  antisym (1#≤1# pf₀) (1#≤1# pf₁) rewrite antisym pf₀ pf₁ = refl
-
-  trans′ : ∀ {n} → Transitive (_q≤_ {n})
-  trans′ []≤[] []≤[] = []≤[]
-  trans′ (0#≤n pf₀) (0#≤n pf₁)  = 0#≤n (trans′ pf₀ pf₁)
-  trans′ (0#≤n pf₀) (1#≤1# pf₁) = 0#≤n (trans′ pf₀ pf₁)
-  trans′ (1#≤1# pf₀) (1#≤1# pf₁) = 1#≤1# (trans′ pf₀ pf₁)
-
-{-
-  total : ∀ {n} → Total (_q≤_ {n})
-  total [] [] = inj₁ []≤[]
-  total (0# ∷ xs) (y  ∷ ys) with total xs ys
-  total (0# ∷ xs) (y  ∷ ys) | inj₁ pf = inj₁ (0#≤n pf)
-  total (0# ∷ xs) (0# ∷ ys) | inj₂ pf = inj₂ (0#≤n pf)
-  total (0# ∷ xs) (1# ∷ ys) | inj₂ pf = {!!}
-  total (1# ∷ xs) (y  ∷ ys) with total ys xs
-  total (1# ∷ xs) (0# ∷ ys) | inj₁ pf = inj₂ (0#≤n pf)
-  total (1# ∷ xs) (1# ∷ ys) | inj₁ pf = inj₂ (1#≤1# pf)
-  total (1# ∷ xs) (0# ∷ ys) | inj₂ pf = {!!}
-  total (1# ∷ xs) (1# ∷ ys) | inj₂ pf = inj₁ (1#≤1# pf)
--}
+strictTotalOrder : ∀ {n} → StrictTotalOrder _ _ _
+strictTotalOrder {n} = record
+  { Carrier            = BitVector n
+  ; _≈_                = _≡_
+  ; _<_                = _<_
+  ; isStrictTotalOrder = record
+    { isEquivalence = isEquivalence
+    ; trans         = <-trans
+    ; compare       = compare
+    ; <-resp-≈      = resp₂ _<_
+    }
+  }
+  where open Order
