@@ -157,6 +157,8 @@ private
   1+2*_ : ∀ {n} → Op₁ (BitVector n)
   1+2* x = droplast (1# ∷ x)
 
+  _+2*_ : ∀ {n} → Bit → BitVector n → BitVector n
+  b +2* x = droplast (b ∷ x)
 
   *-identityˡ : ∀ {n} → LeftIdentity (one n) _*_
   *-identityˡ []                                                   = refl
@@ -173,16 +175,16 @@ private
    *-comm1          (1# ∷ []) (0# ∷ [])                                            = refl
    *-comm1          (1# ∷ []) (1# ∷ [])                                            = refl
    *-comm1 {Nsuc _} (0# ∷ xs) (0# ∷ ys) rewrite *-comm1 xs (2* ys)
-                                              | *-comm1 ys (0# ∷ droplast xs)
+                                              | *-comm1 ys (2* xs)
                                               | *-comm (droplast ys) (droplast xs) = refl
-   *-comm1 {Nsuc _} (0# ∷ xs) (1# ∷ ys) rewrite *-comm1 xs (1# ∷ droplast ys)
-                                              | *-comm1 ys (0# ∷ droplast xs)
+   *-comm1 {Nsuc _} (0# ∷ xs) (1# ∷ ys) rewrite *-comm1 xs (1+2* ys)
+                                              | *-comm1 ys (2* xs)
                                               | *-comm (droplast ys) (droplast xs) = refl
-   *-comm1 {Nsuc _} (1# ∷ xs) (0# ∷ ys) rewrite *-comm1 xs (0# ∷ droplast ys)
-                                              | *-comm1 ys (1# ∷ droplast xs)
+   *-comm1 {Nsuc _} (1# ∷ xs) (0# ∷ ys) rewrite *-comm1 xs (2* ys)
+                                              | *-comm1 ys (1+2* xs)
                                               | *-comm (droplast ys) (droplast xs) = refl
-   *-comm1 {Nsuc _} (1# ∷ xs) (1# ∷ ys) rewrite *-comm1 xs (1# ∷ droplast ys)
-                                              | *-comm1 ys (1# ∷ droplast xs)
+   *-comm1 {Nsuc _} (1# ∷ xs) (1# ∷ ys) rewrite *-comm1 xs (1+2* ys)
+                                              | *-comm1 ys (1+2* xs)
                                               | *-comm (droplast ys) (droplast xs)
                                               | sym (+-assoc ys xs (0# ∷ droplast xs * droplast ys))
                                               | +-comm ys xs
@@ -199,7 +201,7 @@ private
    where
    lemma : ∀ {n} (xs ys : BitVector (Nsuc n))
          → droplast (add′ 1# xs ys) ≡ add′ 1# (droplast xs) (droplast ys)
-   lemma {Nzero}  _ _ = refl
+   lemma {Nzero}  _         _                                          = refl
    lemma {Nsuc _} (0# ∷ xs) (0# ∷ ys) rewrite droplast-distrib-+ xs ys = refl
    lemma {Nsuc _} (0# ∷ xs) (1# ∷ ys) rewrite lemma xs ys              = refl
    lemma {Nsuc _} (1# ∷ xs) (0# ∷ ys) rewrite lemma xs ys              = refl
@@ -209,7 +211,7 @@ private
                      → droplast (x * y) ≡ droplast x * droplast y
   droplast-distrib-* {Nzero}  _         _ = refl
   droplast-distrib-* {Nsuc _} (0# ∷ xs) (y  ∷ ys)
-    rewrite droplast-distrib-* xs (y ∷ droplast ys) = refl
+    rewrite droplast-distrib-* xs (y +2* ys) = refl
   droplast-distrib-* {Nsuc _} (1# ∷ xs) (0# ∷ ys)
     rewrite droplast-distrib-+ ys (xs * (2* ys))
           | droplast-distrib-* xs (2* ys) = refl
@@ -227,7 +229,7 @@ private
   extract-carry (1# ∷ xs) (1# ∷ ys) rewrite +-identityˡ (add′ 1# xs ys) = refl
 
 
-  shift-to-add : ∀ c {n} (x : BitVector n) → droplast (c ∷ x) ≡ add′ c x x
+  shift-to-add : ∀ c {n} (x : BitVector n) → c +2* x ≡ add′ c x x
   shift-to-add _ []                                   = refl
   shift-to-add c (0# ∷ xs) rewrite shift-to-add 0# xs = refl
   shift-to-add c (1# ∷ xs) rewrite shift-to-add 1# xs = refl
@@ -239,13 +241,13 @@ private
 
     where
     lemma : ∀ {n} c (xs ys zs : BitVector n)
-          → add′ 1# ys zs * droplast (c ∷ xs)
-          ≡ add′ c (xs + (ys * droplast (c ∷ xs))) (xs + (zs * droplast (c ∷ xs)))
+          → add′ 1# ys zs * c +2* xs
+          ≡ add′ c (xs + (ys * c +2* xs)) (xs + (zs * c +2* xs))
     lemma c xs ys zs rewrite
          extract-carry ys zs
-       | *-distribʳ (droplast (c ∷ xs)) (one _) (ys + zs)
-       | *-identityˡ (droplast (c ∷ xs))
-       | *-distribʳ (droplast (c ∷ xs)) ys zs
+       | *-distribʳ (c +2* xs) (one _) (ys + zs)
+       | *-identityˡ (c +2* xs)
+       | *-distribʳ (c +2* xs) ys zs
        | shift-to-add c xs
        | *-comm ys (add′ c xs xs)
        | *-comm zs (add′ c xs xs)
