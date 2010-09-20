@@ -9,6 +9,9 @@ open import Data.Product
 
 open import Data.Bool public hiding (_≟_) renaming (Bool to Bit; false to 0#; true to 1#)
 
+infixl 6 _+_
+infixl 7 _*_
+
 BitVector = Vec Bit
 
 bitwise-and : ∀ {n} → Op₂ (BitVector n)
@@ -68,9 +71,6 @@ _*_ : ∀ {n} → Op₂ (BitVector n)
  
 val10 = 0# ∷ 1# ∷ 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
 val11 = 1# ∷ 1# ∷ 0# ∷ 1# ∷ 0# ∷ 0# ∷ 0# ∷ 0# ∷ []
-
--- Treat your BitVectors like peano naturals!
-
 
 open import Relation.Nullary
 open import Relation.Binary
