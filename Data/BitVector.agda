@@ -10,6 +10,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
 infixl 6 _+_
 infixl 7 _*_
+infix  8 -_
 
 BitVector = Vec Bit
 
