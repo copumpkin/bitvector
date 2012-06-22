@@ -306,10 +306,10 @@ private
                          | *-comm x y
                          | *-comm x z = refl
 
-  module Properties n where
+  module Properties (n : ℕ) where
     open import Algebra.Structures
 
-    +-isSemigroup : IsSemigroup _≡_ _+_
+    +-isSemigroup : IsSemigroup {A = BitVector n} _≡_ _+_
     +-isSemigroup = record
        { isEquivalence = isEquivalence; assoc = +-assoc; ∙-cong = cong₂ _+_ }
 
@@ -324,7 +324,7 @@ private
     +-isAbelianGroup : IsAbelianGroup _≡_ _+_ (zero n) -_
     +-isAbelianGroup = record { isGroup = +-isGroup; comm = +-comm }
 
-    *-isSemigroup : IsSemigroup _≡_ _*_
+    *-isSemigroup : IsSemigroup {A = BitVector n} _≡_ _*_
     *-isSemigroup = record
        { isEquivalence = isEquivalence; assoc = *-assoc; ∙-cong = cong₂ _*_ }
 
