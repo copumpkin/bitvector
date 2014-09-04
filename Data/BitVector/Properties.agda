@@ -151,10 +151,10 @@ private
   *-zeroˡ []                                      = refl
   *-zeroˡ {Nsuc n} x rewrite *-zeroˡ (droplast x) = refl
 
-  2*_ : ∀ {n} → Op₁ (BitVector n)
+  2*_ : ∀ {n} → Op₁ {0} (BitVector n)
   2* x = droplast (0# ∷ x)
 
-  1+2*_ : ∀ {n} → Op₁ (BitVector n)
+  1+2*_ : ∀ {n} → Op₁ {0} (BitVector n)
   1+2* x = droplast (1# ∷ x)
 
   _+2*_ : ∀ {n} → Bit → BitVector n → BitVector n
