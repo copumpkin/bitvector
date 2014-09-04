@@ -60,12 +60,15 @@ toPeano [] = Pzero
 toPeano (0# ∷ xs) = Pdouble (toPeano xs)
 toPeano (1# ∷ xs) = Psuc (Pdouble (toPeano xs))
 
-peanoInduction : ∀ {n} → (P : ∀ {x : BitVector n} → Peano x → Set) → P Pzero → (∀ {x : BitVector n} {m : Peano x} → P m → P (Psuc m)) → ∀ {x : BitVector n} (q : Peano x) → P q
+peanoInduction : ∀ {n} → (P : ∀ {x : BitVector n} → Peano x → Set) → P Pzero
+               → (∀ {x : BitVector n} {m : Peano x} → P m → P (Psuc m))
+               → ∀ {x : BitVector n} (q : Peano x) → P q
 peanoInduction P z s Pzero = z
 peanoInduction P z s (Psuc p) = s {_} {p} (peanoInduction P z s p)
 
-induction : ∀ {n} (P : BitVector n → Set) → P (zero n) → (∀ {m} → P m → P (suc m)) → ∀ x → P x
-induction P z s x = peanoInduction (λ {x} _ → P x) z s (toPeano x) 
+induction : ∀ {n} (P : BitVector n → Set) → P (zero n)
+          → (∀ {m} → P m → P (suc m)) → ∀ x → P x
+induction P z s x = peanoInduction (λ {x} _ → P x) z s (toPeano x)
 
 toℕ : ∀ {n} → BitVector n → ℕ
 toℕ = induction _ 0 Nsuc
@@ -81,7 +84,7 @@ fromList {Nzero} (x ∷ xs) = []
 fromList {Nsuc n} (x ∷ xs) = fromDigit x ∷ fromList xs
 
 fromℕ : ∀ {n} → ℕ → BitVector n
-fromℕ n with toDigits 2 n 
+fromℕ n with toDigits 2 n
 fromℕ .(fromDigits ds) | digits ds = fromList ds
 
 -- TODO: the terrifying proofs that toℕ and fromℕ are inverses
