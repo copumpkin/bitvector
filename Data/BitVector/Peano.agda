@@ -9,6 +9,7 @@ open import Relation.Binary.PropositionalEquality
 open import Data.Digit hiding (Bit)
 open import Data.Fin using () renaming (zero to Fzero; suc to Fsuc)
 open import Data.List
+open import Data.Product
 
 suc : ∀ {n} → Op₁ (BitVector n)
 suc [] = []
@@ -85,6 +86,6 @@ fromList {Nsuc n} (x ∷ xs) = fromDigit x ∷ fromList xs
 
 fromℕ : ∀ {n} → ℕ → BitVector n
 fromℕ n with toDigits 2 n
-fromℕ .(fromDigits ds) | digits ds = fromList ds
+fromℕ .(fromDigits ds) | ds , refl = fromList ds
 
 -- TODO: the terrifying proofs that toℕ and fromℕ are inverses
