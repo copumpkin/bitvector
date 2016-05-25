@@ -214,6 +214,5 @@ strictTotalOrder {n} = record
       { isEquivalence = isEquivalence
       ; trans         = <-trans
       ; compare       = compare
-      ; <-resp-≈      = resp₂ _<_
       }
   }

@@ -1,0 +1,3 @@
+name: bitvector
+include: .
+depend: standard-library
